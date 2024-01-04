@@ -1,25 +1,60 @@
-﻿namespace MauiTestApp
+﻿using MauiTestApp.Utils;
+
+namespace MauiTestApp
 {
     public partial class MainPage : ContentPage
     {
-        int count = 0;
+        private string _translatedNumber;
 
         public MainPage()
         {
             InitializeComponent();
+
+            _translatedNumber = string.Empty;
         }
 
-        private void OnCounterClicked(object sender, EventArgs e)
+        private void OnTranslate(object sender, EventArgs e)
         {
-            count++;
+            var enteredNumber = PhoneNumberText.Text;
+            _translatedNumber = PhonewordTranslator.ToNumber(enteredNumber);
 
-            if (count == 1)
-                CounterBtn.Text = $"Clicked {count} time";
+            if (!string.IsNullOrEmpty(_translatedNumber))
+            {
+                CallButton.IsEnabled = true;
+                CallButton.Text = "Call " + _translatedNumber;
+            }
             else
-                CounterBtn.Text = $"Clicked {count} times";
+            {
+                CallButton.IsEnabled = false;
+                CallButton.Text = "Call";
+            }
+        }
 
-            SemanticScreenReader.Announce(CounterBtn.Text);
+        private async void OnCall(object sender, System.EventArgs e)
+        {
+            var callRequestAccepted = await DisplayAlert(
+                title: "Dial a Number",
+                message: "Would you like to call " + _translatedNumber + "?",
+                accept: "Yes",
+                cancel: "No");
+
+            if (callRequestAccepted)
+            {
+                try
+                {
+                    if (PhoneDialer.Default.IsSupported)
+                        PhoneDialer.Default.Open(_translatedNumber);
+                }
+                catch (ArgumentNullException)
+                {
+                    await DisplayAlert("Unable to dial", "Phone number was not valid.", "OK");
+                }
+                catch (Exception)
+                {
+                    // Other error has occurred.
+                    await DisplayAlert("Unable to dial", "Phone dialing failed.", "OK");
+                }
+            }
         }
     }
-
 }
